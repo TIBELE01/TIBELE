@@ -31,4 +31,11 @@ Données de démonstration (après les migrations) : `npm run db:seed` — 3 pat
 
 ### Frontend
 
-_À compléter._
+```bash
+cd frontend
+npm install
+cp .env.example .env   # URL de l'API, URL et clé publique « anon » de Supabase
+npm run dev            # http://localhost:5173
+```
+
+Scripts : `npm run build` (build de production avec service worker), `npm run preview`, `npm run typecheck`, `npm run lint`, `npm test`. Les icônes PWA se régénèrent depuis `public/logo.svg` avec `npm run pwa:assets`.

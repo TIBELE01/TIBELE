@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="TIBELE">
+  <!-- Logo provisoire : croix médicale blanche sur fond bleu foncé -->
+  <rect width="512" height="512" rx="112" fill="#0B3D91"/>
+  <path fill="#fff" d="M208 96h96v112h112v96H304v112h-96V304H96v-96h112z"/>
+</svg>
