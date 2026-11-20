@@ -1,0 +1,20 @@
+# Dépendances
+node_modules/
+
+# Build et couverture
+dist/
+coverage/
+*.tsbuildinfo
+
+# Client Prisma généré
+src/generated/
+
+# Variables d'environnement (seul .env.example est versionné)
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*

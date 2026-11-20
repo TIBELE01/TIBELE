@@ -15,4 +15,18 @@ Les décisions techniques sont décrites dans [`Contexte.MD`](./Contexte.MD).
 
 ## Installation et démarrage
 
-_À compléter au fil du développement._
+Prérequis : Node.js ≥ 22.12 (voir `.nvmrc`), npm.
+
+### Backend
+
+```bash
+cd backend
+npm install
+cp .env.example .env   # puis renseigner les valeurs Supabase
+```
+
+Scripts principaux : `npm run dev`, `npm run build`, `npm run typecheck`, `npm run lint`, `npm test`.
+
+### Frontend
+
+_À compléter._
