@@ -8,6 +8,8 @@ PWA éducative destinée aux étudiants en médecine, infirmiers et médecins en
 
 - `backend/` : API REST Express + TypeScript, Prisma, Zod, Supabase (vérification des jetons)
 - `frontend/` : React + TypeScript, Vite, TailwindCSS, TanStack Query, PWA
+- `docs/` : documentation (architecture, API, base de données, déploiement, guides)
+- `.github/workflows/` : intégration continue
 
 Les décisions techniques sont décrites dans [`Contexte.MD`](./Contexte.MD).
 
