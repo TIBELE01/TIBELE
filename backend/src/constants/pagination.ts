@@ -6,6 +6,8 @@ export const PAGINATION = {
   MAX_PAGE_SIZE: 50,
   /** Taille de page du forum (sujets et messages) : fixée à 10 par le contexte. */
   FORUM_PAGE_SIZE: 10,
+  /** Taille de page de l'historique des tentatives de quiz. */
+  HISTORY_PAGE_SIZE: 10,
   /** Numéro de page maximal accepté (évite les OFFSET gigantesques). */
   MAX_PAGE: 10_000,
 } as const;

@@ -1,6 +1,6 @@
 import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { USER_ID } from '../../helpers/api.js';
+import { USER_ID } from '../../helpers/supabase-mock.js';
 
 const prisma = {
   pathology: { findUnique: vi.fn() },

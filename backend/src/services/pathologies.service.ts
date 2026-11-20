@@ -25,7 +25,7 @@ const summarySelect = {
   imageUrl: true,
 } satisfies Prisma.PathologySelect;
 
-const detailSelect = {
+export const pathologyDetailSelect = {
   ...summarySelect,
   definition: true,
   exams: true,
@@ -89,10 +89,19 @@ async function searchPathologies(q: string, skip: number, take: number) {
   return { items, total: counts[0]?.total ?? 0 };
 }
 
-export async function getPathologyBySlug(slug: string) {
-  const row = await prisma.pathology.findUnique({ where: { slug }, select: detailSelect });
-  if (!row) throw new NotFoundError('Pathologie introuvable');
+type PathologyDetailRow = Prisma.PathologyGetPayload<{ select: typeof pathologyDetailSelect }>;
 
+/** Aplatit `_count` en `questionsCount` (forme publique d'une fiche). */
+export function toPathologyDetail(row: PathologyDetailRow) {
   const { _count, ...pathology } = row;
   return { ...pathology, questionsCount: _count.questions };
+}
+
+export async function getPathologyBySlug(slug: string) {
+  const row = await prisma.pathology.findUnique({
+    where: { slug },
+    select: pathologyDetailSelect,
+  });
+  if (!row) throw new NotFoundError('Pathologie introuvable');
+  return toPathologyDetail(row);
 }

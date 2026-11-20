@@ -27,6 +27,8 @@ cp .env.example .env   # puis renseigner les valeurs Supabase
 
 Scripts principaux : `npm run dev`, `npm run build`, `npm run typecheck`, `npm run lint`, `npm test`.
 
+Données de démonstration (après les migrations) : `npm run db:seed` — 3 pathologies, 30 questions QCM/QCD et quelques sujets de forum. Idempotent ; refusé en production sauf `SEED_ALLOW_PRODUCTION=true`.
+
 ### Frontend
 
 _À compléter._
