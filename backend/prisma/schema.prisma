@@ -1,0 +1,218 @@
+// =============================================================================
+// TIBELE — Modèle de données (Prisma 7 / PostgreSQL Supabase)
+//
+// - Toutes les tables applicatives vivent dans le schéma `public`.
+// - Le schéma `auth` (auth.users) est géré par Supabase et n'est JAMAIS
+//   manipulé par Prisma. Le lien profiles.id -> auth.users.id, le trigger de
+//   création de profil et la RLS sont définis dans prisma/sql/ (voir README).
+// - Les URL de connexion sont définies dans prisma.config.ts (migrations,
+//   DIRECT_URL) et dans src/config (exécution, DATABASE_URL via pooler).
+// - Conventions : modèles/champs en camelCase côté TypeScript,
+//   tables/colonnes en snake_case côté base (@map / @@map).
+// =============================================================================
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// -----------------------------------------------------------------------------
+// Énumérations
+// -----------------------------------------------------------------------------
+
+/// Rôle applicatif. Source de vérité : auth.users.raw_app_meta_data->>'role'
+/// (app_metadata Supabase). Cette copie est synchronisée par trigger.
+enum Role {
+  USER  @map("user")
+  ADMIN @map("admin")
+
+  @@map("user_role")
+}
+
+/// QCM : plusieurs options, une ou plusieurs correctes (correction tout ou rien).
+/// QCD : vrai/faux, exactement deux options (index 0 = "Vrai", index 1 = "Faux").
+enum QuestionType {
+  QCM
+  QCD
+
+  @@map("question_type")
+}
+
+// -----------------------------------------------------------------------------
+// Profils
+// -----------------------------------------------------------------------------
+
+/// Profil applicatif, 1-1 avec auth.users (même identifiant).
+/// Créé automatiquement par trigger à l'inscription (prisma/sql/triggers).
+model Profile {
+  /// = auth.users.id (pas de valeur par défaut : fourni par Supabase Auth)
+  id        String   @id @db.Uuid
+  fullName  String?  @map("full_name") @db.VarChar(120)
+  role      Role     @default(USER)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  forumTopics  ForumTopic[]
+  forumPosts   ForumPost[]
+  quizAttempts QuizAttempt[]
+
+  @@map("profiles")
+}
+
+// -----------------------------------------------------------------------------
+// Pathologies (fiches pédagogiques)
+// -----------------------------------------------------------------------------
+
+model Pathology {
+  id                    String   @id @default(uuid()) @db.Uuid
+  title                 String   @db.VarChar(200)
+  /// Généré à partir du titre côté backend (unique)
+  slug                  String   @unique @db.VarChar(220)
+  /// Description courte (extrait affiché dans les listes et la recherche)
+  shortDescription      String   @map("short_description") @db.VarChar(500)
+  definition            String   @db.Text
+  /// Liste des examens à réaliser (un élément par examen)
+  exams                 String[] @default([])
+  referenceDiagnosis    String   @map("reference_diagnosis") @db.Text
+  onSiteTreatment       String   @map("on_site_treatment") @db.Text
+  dischargePrescription String   @map("discharge_prescription") @db.Text
+  prevention            String   @db.Text
+  /// Références bibliographiques (une chaîne par référence)
+  references            String[] @default([])
+  imageUrl              String?  @map("image_url") @db.VarChar(2048)
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  /// Vecteur full-text français (titre + description + définition).
+  /// Colonne GÉNÉRÉE par PostgreSQL (prisma/sql/search) : ne jamais l'écrire
+  /// depuis l'application. Lecture/recherche uniquement via $queryRaw.
+  searchVector Unsupported("tsvector")? @default(dbgenerated()) @map("search_vector")
+
+  questions    Question[]
+  quizAttempts QuizAttempt[]
+  forumTopics  ForumTopic[]
+
+  /// Recherche full-text
+  @@index([searchVector], map: "pathologies_search_vector_idx", type: Gin)
+  /// Recherche partielle sur le titre (extension pg_trgm)
+  @@index([title(ops: raw("gin_trgm_ops"))], map: "pathologies_title_trgm_idx", type: Gin)
+  /// Liste paginée de la page d'accueil
+  @@index([createdAt(sort: Desc)])
+  @@map("pathologies")
+}
+
+// -----------------------------------------------------------------------------
+// Forum
+// -----------------------------------------------------------------------------
+
+model ForumTopic {
+  id          String   @id @default(uuid()) @db.Uuid
+  title       String   @db.VarChar(200)
+  /// Contenu du premier message (texte brut, échappé à l'affichage)
+  content     String   @db.Text
+  authorId    String   @map("author_id") @db.Uuid
+  /// Pathologie associée (optionnelle) pour contextualiser la discussion
+  pathologyId String?  @map("pathology_id") @db.Uuid
+  /// Nombre de réponses (ForumPost), maintenu par le backend
+  replyCount  Int      @default(0) @map("reply_count")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  author    Profile     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  pathology Pathology?  @relation(fields: [pathologyId], references: [id], onDelete: SetNull)
+  posts     ForumPost[]
+
+  /// Liste en ordre chronologique inverse
+  @@index([createdAt(sort: Desc)])
+  @@index([authorId])
+  @@index([pathologyId])
+  @@map("forum_topics")
+}
+
+model ForumPost {
+  id        String   @id @default(uuid()) @db.Uuid
+  topicId   String   @map("topic_id") @db.Uuid
+  authorId  String   @map("author_id") @db.Uuid
+  /// Texte brut, échappé à l'affichage
+  content   String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  /// Suppression d'un sujet => suppression en cascade de ses messages
+  topic  ForumTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  author Profile    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  /// Pagination des messages d'un sujet
+  @@index([topicId, createdAt])
+  @@index([authorId])
+  @@map("forum_posts")
+}
+
+// -----------------------------------------------------------------------------
+// Auto-évaluation
+// -----------------------------------------------------------------------------
+
+/// Format de `options` (JSON) :
+///   [{ "text": string, "isCorrect": boolean }, ...]
+/// - QCM : >= 2 options, au moins une correcte (plusieurs possibles)
+/// - QCD : exactement 2 options, [0] = "Vrai", [1] = "Faux", une seule correcte
+/// `isCorrect` n'est JAMAIS renvoyé au frontend avant la correction.
+model Question {
+  id          String       @id @default(uuid()) @db.Uuid
+  pathologyId String       @map("pathology_id") @db.Uuid
+  text        String       @db.Text
+  type        QuestionType
+  options     Json         @db.JsonB
+  explanation String?      @db.Text
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  pathology Pathology    @relation(fields: [pathologyId], references: [id], onDelete: Cascade)
+  answers   UserAnswer[]
+
+  @@index([pathologyId])
+  @@map("questions")
+}
+
+/// Une ligne par soumission complète d'un quiz.
+model QuizAttempt {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  pathologyId    String   @map("pathology_id") @db.Uuid
+  /// Nombre de réponses correctes (calculé côté serveur)
+  score          Int
+  totalQuestions Int      @map("total_questions")
+  completedAt    DateTime @default(now()) @map("completed_at") @db.Timestamptz(6)
+
+  user      Profile      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pathology Pathology    @relation(fields: [pathologyId], references: [id], onDelete: Cascade)
+  answers   UserAnswer[]
+
+  /// Historique personnel, du plus récent au plus ancien
+  @@index([userId, completedAt(sort: Desc)])
+  @@index([pathologyId])
+  @@map("quiz_attempts")
+}
+
+/// Réponse fournie à une question lors d'une tentative.
+/// Format de `answer` (JSON) :
+///   - QCM : { "selected": number[] }  (index des options cochées)
+///   - QCD : { "value": boolean }      (true = "Vrai", false = "Faux")
+model UserAnswer {
+  id         String  @id @default(uuid()) @db.Uuid
+  attemptId  String  @map("attempt_id") @db.Uuid
+  questionId String  @map("question_id") @db.Uuid
+  answer     Json    @db.JsonB
+  isCorrect  Boolean @map("is_correct")
+
+  attempt  QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  /// Une seule réponse par question et par tentative (index aussi sur attempt_id)
+  @@unique([attemptId, questionId])
+  @@index([questionId])
+  @@map("user_answers")
+}
