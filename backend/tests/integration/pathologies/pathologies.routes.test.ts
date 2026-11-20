@@ -36,7 +36,11 @@ describe('GET /api/pathologies', () => {
     expect(res.body.data).toEqual([summary]);
     expect(res.body.meta).toEqual({ page: 2, pageSize: 10, total: 25, totalPages: 3 });
     expect(prisma.pathology.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ skip: 10, take: 10 }),
+      expect.objectContaining({
+        skip: 10,
+        take: 10,
+        orderBy: [{ title: 'asc' }, { id: 'asc' }],
+      }),
     );
     // Le vecteur de recherche ne doit jamais être sélectionné
     expect(JSON.stringify(prisma.pathology.findMany.mock.calls[0])).not.toContain('searchVector');

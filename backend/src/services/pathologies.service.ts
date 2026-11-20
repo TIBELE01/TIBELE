@@ -54,7 +54,7 @@ export async function listPathologies(
     const [items, total] = await Promise.all([
       prisma.pathology.findMany({
         select: summarySelect,
-        orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+        orderBy: [{ title: 'asc' }, { id: 'asc' }],
         skip,
         take,
       }),
@@ -68,7 +68,7 @@ export async function listPathologies(
 /**
  * Recherche : full-text français sans accents (colonne `search_vector`, index GIN)
  * OU correspondance partielle sur le titre (ILIKE, servi par l'index trigramme).
- * Tri par pertinence, puis par date. Requêtes paramétrées via `Prisma.sql`.
+ * Tri par pertinence, puis par ordre alphabétique. Requêtes paramétrées via `Prisma.sql`.
  */
 async function searchPathologies(q: string, skip: number, take: number) {
   const tsQuery = Prisma.sql`websearch_to_tsquery('public.french_unaccent'::regconfig, ${q}::text)`;
@@ -80,7 +80,7 @@ async function searchPathologies(q: string, skip: number, take: number) {
       SELECT id, title, slug, short_description AS "shortDescription", image_url AS "imageUrl"
       FROM public.pathologies
       WHERE ${where}
-      ORDER BY ts_rank(search_vector, ${tsQuery}) DESC, created_at DESC, id ASC
+      ORDER BY ts_rank(search_vector, ${tsQuery}) DESC, title ASC, id ASC
       LIMIT ${take} OFFSET ${skip}`),
     prisma.$queryRaw<{ total: number }[]>(
       Prisma.sql`SELECT count(*)::int AS total FROM public.pathologies WHERE ${where}`,

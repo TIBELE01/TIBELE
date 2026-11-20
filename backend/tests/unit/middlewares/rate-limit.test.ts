@@ -41,7 +41,7 @@ describe('rate limiting', () => {
     expect((await request(app).post('/')).status).toBe(429);
   });
 
-  it('valeurs par défaut du contexte : 100 / 15 min (global), 20 / min (écriture)', () => {
+  it('valeur par défaut du limiteur global : 300 / 15 min', () => {
     // Vérifié via les en-têtes d'une instance réellement active
     const app = express();
     app.use(buildGlobalRateLimiter(active));
@@ -51,7 +51,7 @@ describe('rate limiting', () => {
     return request(app)
       .get('/')
       .then((res) => {
-        expect(res.headers['ratelimit-policy']).toContain('100');
+        expect(res.headers['ratelimit-policy']).toContain('300');
         expect(res.headers['ratelimit-policy']).toContain('900');
       });
   });

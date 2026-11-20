@@ -101,8 +101,8 @@ model Pathology {
   @@index([searchVector], map: "pathologies_search_vector_idx", type: Gin)
   /// Recherche partielle sur le titre (extension pg_trgm)
   @@index([title(ops: raw("gin_trgm_ops"))], map: "pathologies_title_trgm_idx", type: Gin)
-  /// Liste paginée de la page d'accueil
-  @@index([createdAt(sort: Desc)])
+  /// Liste paginée de la page d'accueil (ordre alphabétique)
+  @@index([title])
   @@map("pathologies")
 }
 

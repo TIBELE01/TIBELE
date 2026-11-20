@@ -1,8 +1,8 @@
 /**
  * Limitation du débit de requêtes (par adresse IP).
  *
- * Deux limiteurs, définis par le contexte du projet :
- *   - `globalRateLimiter` : 100 requêtes / 15 minutes, sur toute l'API ;
+ * Deux limiteurs (seuils dans constants/rate-limit.ts) :
+ *   - `globalRateLimiter` : 300 requêtes / 15 minutes, sur toute l'API ;
  *   - `writeRateLimiter`  : 20 requêtes / minute, sur les routes d'écriture
  *     (seules les méthodes POST/PUT/PATCH/DELETE sont comptées, il peut donc
  *     être monté sur un routeur entier sans pénaliser les lectures).
@@ -22,6 +22,7 @@
 import type { RequestHandler } from 'express';
 import { rateLimit, type Options } from 'express-rate-limit';
 import { env } from '../config/env.js';
+import { RATE_LIMIT } from '../constants/rate-limit.js';
 import { TooManyRequestsError } from '../errors/index.js';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
@@ -48,12 +49,20 @@ function build(defaults: Partial<Options>, skipSafeMethods: boolean, options: Li
 
 /** Fabrique du limiteur global (options surchargeables pour les tests). */
 export function buildGlobalRateLimiter(options: LimiterOptions = {}): RequestHandler {
-  return build({ windowMs: 15 * 60 * 1000, limit: 100 }, false, options);
+  return build(
+    { windowMs: RATE_LIMIT.GLOBAL_WINDOW_MS, limit: RATE_LIMIT.GLOBAL_MAX },
+    false,
+    options,
+  );
 }
 
 /** Fabrique du limiteur des routes d'écriture (options surchargeables pour les tests). */
 export function buildWriteRateLimiter(options: LimiterOptions = {}): RequestHandler {
-  return build({ windowMs: 60 * 1000, limit: 20 }, true, options);
+  return build(
+    { windowMs: RATE_LIMIT.WRITE_WINDOW_MS, limit: RATE_LIMIT.WRITE_MAX },
+    true,
+    options,
+  );
 }
 
 export const globalRateLimiter = buildGlobalRateLimiter();
