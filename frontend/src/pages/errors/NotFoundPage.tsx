@@ -1,16 +1,17 @@
 import { Link } from 'react-router-dom';
+import { buttonClasses } from '@/components/ui/button-styles';
+import { ROUTES } from '@/constants/routes';
+import { usePageTitle } from '@/hooks/usePageTitle';
 
 export function NotFoundPage() {
+  usePageTitle('Page introuvable');
   return (
-    <main className="mx-auto flex min-h-dvh max-w-2xl flex-col items-center justify-center gap-4 px-4 text-center">
+    <section className="mx-auto max-w-md py-16 text-center">
       <h1 className="text-2xl font-bold text-primary-800">Page introuvable</h1>
-      <p className="text-slate-600">Cette page n'existe pas ou a été déplacée.</p>
-      <Link
-        to="/"
-        className="rounded-lg bg-primary-800 px-5 py-3 font-medium text-white hover:bg-primary-900"
-      >
-        Retour à l'accueil
+      <p className="mt-2 text-slate-600">Cette page n’existe pas ou a été déplacée.</p>
+      <Link to={ROUTES.home} className={buttonClasses('primary', 'mt-6')}>
+        Retour à l’accueil
       </Link>
-    </main>
+    </section>
   );
 }
